@@ -1,0 +1,12 @@
+*.mov
+*.mp4
+*.mp3
+*.env
+__pycache__/
+*.pyc
+.DS_Store
+filelist.txt
+clip_*.mp4
+tts_*.mp3
+merged_raw.mp4
+subs.srt
