@@ -1,155 +1,142 @@
-# Vedic Skills
+# Vedic Skills — AI 视频生产工厂
 
-AI agent skill collection for automated video production.
-One command → publish-ready `.mp4` + full copy package (title, caption, voiceover, hashtags).
+给定一个主题，全自动生成发布级视频 + 完整文案包。
 
-Supports **6 platforms × 4 formats × 2 languages (EN/ZH)**.
-
----
-
-## Skills
-
-| Skill | Description |
-|-------|-------------|
-| [video-pipeline](skills/video-pipeline/) | Full AI video factory — TikTok, Instagram, YouTube, Douyin, XHS, Bilibili |
+支持 **6 个平台 × 4 种格式 × 中英双语**，一行代码跑完整条流水线。
 
 ---
 
-## Quick Start
+## 包含 Skill
+
+| Skill | 说明 |
+|-------|------|
+| [video-pipeline](skills/video-pipeline/) | 全自动 AI 视频工厂 — 抖音 / 小红书 / B站 / TikTok / Instagram / YouTube |
+
+---
+
+## 快速开始
+
+### 第一步：克隆项目
 
 ```bash
-# 1. Clone
 git clone https://github.com/zhuxirui677/Vedic-skills.git
 cd Vedic-skills
-
-# 2. Install Python deps
-pip install google-generativeai fal-client openai requests ffmpeg-python
-
-# 3. Install FFmpeg (system)
-sudo apt install ffmpeg          # Ubuntu/Debian
-brew install ffmpeg              # macOS
-
-# 4. Set API keys (see table below)
-export GEMINI_API_KEY="..."
-export FAL_KEY="..."
-export XAI_API_KEY="..."
-export OPENAI_API_KEY="..."
-
-# 5. Run
-python skills/video-pipeline/scripts/pipeline.py
 ```
 
----
+### 第二步：安装依赖
 
-## API Keys — What You Need
+```bash
+pip install -r requirements.txt
+```
 
-### By Platform
+还需要安装系统级 FFmpeg：
 
-| Platform | `platform=` | Language | GEMINI | FAL | XAI | OPENAI |
-|----------|------------|----------|:------:|:---:|:---:|:------:|
-| TikTok | `"tiktok"` | EN | ✅ | ✅ | ✅ | ✅ |
-| Instagram | `"instagram"` | EN | ✅ | ✅ | ✅ | ✅ |
-| YouTube | `"youtube"` | EN | ✅ | ✅ | ✅ | ✅ |
-| 抖音 Douyin | `"douyin"` | ZH | ✅ | ✅ | ✅ | ✅ |
-| 小红书 XHS | `"xiaohongshu"` | ZH | ✅ | ✅ | ✅ | ✅ |
-| 哔哩哔哩 Bilibili | `"bilibili"` | ZH | ✅ | ✅ | ✅ | ✅ |
+```bash
+# Ubuntu / Debian
+sudo apt install ffmpeg
 
-All platforms require all 4 keys. Each key serves a different layer of the pipeline.
+# macOS
+brew install ffmpeg
+```
 
-### By Video Format
+中文字幕需要 CJK 字体（英文视频可跳过）：
 
-| Format | `aspect_ratio` | `long_video` | Extra condition |
-|--------|---------------|-------------|-----------------|
-| Short vertical (TikTok/Reels/Douyin) | `"9:16"` | `False` | — |
-| Short horizontal (landscape demo) | `"16:9"` | `False` | — |
-| Long vertical (long-form portrait) | `"9:16"` | `True` | set `target_duration_s` |
-| Long horizontal (YouTube tutorial) | `"16:9"` | `True` | set `target_duration_s` |
+```bash
+# Ubuntu / Debian
+sudo apt install fonts-noto-cjk
 
-Long video also generates `_chapters.txt` with YouTube timestamp markers.
+# macOS
+brew install --cask font-noto-sans-cjk
+```
 
-### Key Details
+### 第三步：配置 API Key
 
-| Key | Used For (Pipeline Layer) | Where to Get | Cost |
-|-----|--------------------------|--------------|------|
-| `GEMINI_API_KEY` | Layer 1 — shot list generation (Gemini 2.5 Pro) | [aistudio.google.com](https://aistudio.google.com) → Get API Key | **Free** (1500 req/day) |
-| `FAL_KEY` | Layer 2 — video clip generation (Seedance 2.0) | [fal.ai](https://fal.ai) → Dashboard → API Keys | ~$0.30–0.50 per clip |
-| `XAI_API_KEY` | Layer 0 — live trend search + Layer 3 — copy (Grok 3) | [console.x.ai](https://console.x.ai) | $25 free credit on signup |
-| `OPENAI_API_KEY` | Layer 4 — TTS voiceover | [platform.openai.com](https://platform.openai.com) → API Keys | ~$0.01 per video |
+```bash
+export GEMINI_API_KEY="..."    # Gemini 2.5 Pro — 分镜生成
+export FAL_KEY="..."           # Seedance 2.0 — 视频片段生成
+export XAI_API_KEY="..."       # Grok 3 — 趋势搜索 + 文案
+export OPENAI_API_KEY="..."    # OpenAI TTS — 旁白配音
+```
 
-### Cost per Run (5-shot short video)
+### 第四步：运行示例
 
-| Item | Cost |
-|------|------|
-| Gemini (shot list) | Free |
-| Grok 3 (trends + copy) | ~$0.05 |
-| Seedance 2.0 × 5 clips | ~$1.50–2.50 |
-| OpenAI TTS | ~$0.01 |
-| **Total** | **~$2** |
+```bash
+python example.py
+```
 
-For long video (15+ shots), multiply Seedance cost by number of shots.
-
----
-
-## Usage
-
-### Python API
+或直接在代码里调用：
 
 ```python
 import sys
 sys.path.insert(0, "skills/video-pipeline/scripts")
 from pipeline import run_pipeline
-```
 
-#### English — TikTok short vertical (9:16)
-
-```python
 run_pipeline(
-    topic="SPF 50 sunscreen outdoor test, real skin reaction",
-    output_path="sunscreen_tiktok.mp4",
-    assets={
-        "character": "blogger.jpg",        # keeps person consistent
-        "product":   "sunscreen.jpg",      # product shots
-        "ref_videos": ["outdoor_walk.mp4"], # camera movement reference
-    },
-    platform="tiktok",
-    language="en",
-    aspect_ratio="9:16",
-    n_shots=5,
-    tts_voice="nova",
-    concurrent=True,
+    topic="防晒霜户外实测，真实肤感反应",
+    platform="douyin",
+    language="zh",
 )
 ```
 
-#### English — YouTube long horizontal (16:9)
+---
 
-```python
-run_pipeline(
-    topic="How to set up a home studio for content creators — full guide",
-    output_path="studio_youtube.mp4",
-    assets={
-        "character":  "creator.jpg",
-        "ref_videos": ["studio_recording.mov", "gear_broll.mp4"],
-        "extra_images": ["gear_list.jpg"],
-    },
-    platform="youtube",
-    language="en",
-    aspect_ratio="16:9",
-    long_video=True,
-    target_duration_s=300,   # ~5 minutes
-    tts_voice="onyx",
-    concurrent=True,
-)
-```
+## 需要哪些 API Key
 
-#### Chinese — Douyin short vertical (抖音 9:16)
+### 去哪里获取
+
+| Key | 用途 | 获取地址 | 费用 |
+|-----|------|---------|------|
+| `GEMINI_API_KEY` | 第1层：分镜脚本生成（Gemini 2.5 Pro） | [aistudio.google.com](https://aistudio.google.com) → Get API Key | **免费**（每天 1500 次） |
+| `FAL_KEY` | 第2层：视频片段生成（Seedance 2.0） | [fal.ai](https://fal.ai) → Dashboard → API Keys | 每个片段约 $0.30–0.50 |
+| `XAI_API_KEY` | 第0层趋势搜索 + 第3层文案（Grok 3） | [console.x.ai](https://console.x.ai) | 注册送 $25 免费额度 |
+| `OPENAI_API_KEY` | 第4层：旁白配音（TTS） | [platform.openai.com](https://platform.openai.com) → API Keys | 每个视频约 $0.01 |
+
+### 每次运行费用（5个镜头短视频）
+
+| 服务 | 费用 |
+|------|------|
+| Gemini（分镜） | 免费 |
+| Grok 3（趋势 + 文案） | ~$0.05 |
+| Seedance 2.0 × 5个片段 | ~$1.50–2.50 |
+| OpenAI TTS（配音） | ~$0.01 |
+| **合计** | **约 $2** |
+
+长视频（15+ 个镜头）按镜头数等比增加 Seedance 费用。
+
+### 不同平台需要的条件
+
+| 平台 | `platform=` | 语言 | 视频比例 | 备注 |
+|------|------------|------|---------|------|
+| 抖音 | `"douyin"` | 中文（自动） | 9:16 | — |
+| 小红书 | `"xiaohongshu"` | 中文（自动） | 9:16 | — |
+| 哔哩哔哩 | `"bilibili"` | 中文（自动） | 16:9 | 长视频需设 `long_video=True` |
+| TikTok | `"tiktok"` | 英文 | 9:16 | — |
+| Instagram | `"instagram"` | 英文 | 9:16 | — |
+| YouTube | `"youtube"` | 英文 | 16:9 | 长视频需设 `long_video=True` |
+
+### 不同视频格式需要的条件
+
+| 格式 | `aspect_ratio` | `long_video` | 额外条件 |
+|------|---------------|-------------|---------|
+| 短视频竖屏（抖音/TikTok/小红书） | `"9:16"` | `False` | — |
+| 短视频横屏（产品展示） | `"16:9"` | `False` | — |
+| 长视频竖屏 | `"9:16"` | `True` | 设置 `target_duration_s`（秒） |
+| 长视频横屏（B站/YouTube教程） | `"16:9"` | `True` | 设置 `target_duration_s`（秒） |
+
+---
+
+## 使用示例
+
+### 抖音短视频（中文，9:16）
 
 ```python
 run_pipeline(
     topic="防晒霜户外实测，真实肤感反应",
-    output_path="sunscreen_douyin.mp4",
+    output_path="output_douyin.mp4",
     assets={
-        "character": "blogger.jpg",
-        "product":   "sunscreen.jpg",
+        "character": "blogger.jpg",    # 博主照片（保持人物一致）
+        "product":   "sunscreen.jpg",  # 产品图
+        "ref_videos": ["outdoor.mp4"], # 参考视频（仿拍运镜）
     },
     platform="douyin",
     language="zh",
@@ -160,17 +147,58 @@ run_pipeline(
 )
 ```
 
-#### Chinese — Bilibili long horizontal (B站 16:9)
+### 小红书种草（中文，9:16）
+
+```python
+run_pipeline(
+    topic="护肤早C晚A入门，敏感肌也能用",
+    output_path="output_xhs.mp4",
+    platform="xiaohongshu",
+    language="zh",
+    aspect_ratio="9:16",
+    tts_voice="shimmer",
+)
+```
+
+### B站长视频教程（中文，16:9，含章节）
 
 ```python
 run_pipeline(
     topic="家庭影音室从零搭建完整攻略",
-    output_path="home_studio_bilibili.mp4",
-    assets={
-        "ref_videos": ["room_tour.mp4", "gear_demo.mp4"],
-    },
+    output_path="output_bilibili.mp4",
     platform="bilibili",
     language="zh",
+    aspect_ratio="16:9",
+    long_video=True,
+    target_duration_s=300,   # 目标5分钟
+    tts_voice="onyx",
+    concurrent=True,
+)
+```
+
+### TikTok 短视频（英文，9:16）
+
+```python
+run_pipeline(
+    topic="SPF 50 sunscreen outdoor test, real skin reaction",
+    output_path="output_tiktok.mp4",
+    platform="tiktok",
+    language="en",
+    aspect_ratio="9:16",
+    n_shots=5,
+    tts_voice="nova",
+    concurrent=True,
+)
+```
+
+### YouTube 长教程（英文，16:9）
+
+```python
+run_pipeline(
+    topic="How to set up a home studio for content creators",
+    output_path="output_youtube.mp4",
+    platform="youtube",
+    language="en",
     aspect_ratio="16:9",
     long_video=True,
     target_duration_s=300,
@@ -181,120 +209,116 @@ run_pipeline(
 
 ---
 
-## All Parameters
+## 全部参数说明
 
-| Parameter | Default | Options | Description |
-|-----------|---------|---------|-------------|
-| `topic` | required | any string | Video subject or product description |
-| `output_path` | `"output_final.mp4"` | any `.mp4` path | Output file path |
-| `assets` | `{}` | see below | Media assets dict |
-| `platform` | `"tiktok"` | `tiktok` `instagram` `youtube` `douyin` `xiaohongshu` `bilibili` `general` | Target platform |
-| `language` | `"en"` | `"en"` `"zh"` | Output language — auto-set to `zh` for Chinese platforms |
-| `aspect_ratio` | `"9:16"` | `"9:16"` `"16:9"` | Video orientation |
-| `long_video` | `False` | `True` `False` | Enable long-form with chapter structure |
-| `target_duration_s` | `60` | any int | Target length in seconds (used when `long_video=True`) |
-| `n_shots` | auto | any int | Override shot count |
-| `tts_voice` | `"nova"` | see below | OpenAI TTS voice |
-| `concurrent` | `False` | `True` `False` | Parallel clip generation (~5× faster, recommended for 8+ shots) |
+| 参数 | 默认值 | 可选值 | 说明 |
+|------|--------|--------|------|
+| `topic` | 必填 | 任意字符串 | 视频主题或产品描述 |
+| `output_path` | `"output_final.mp4"` | 任意 `.mp4` 路径 | 输出文件路径 |
+| `assets` | `{}` | 见下方 | 媒体素材字典 |
+| `platform` | `"tiktok"` | `douyin` `xiaohongshu` `bilibili` `tiktok` `instagram` `youtube` `general` | 目标平台 |
+| `language` | `"en"` | `"zh"` `"en"` | 输出语言；指定中文平台时自动切换为 zh |
+| `aspect_ratio` | `"9:16"` | `"9:16"` `"16:9"` | 视频比例（竖屏/横屏） |
+| `long_video` | `False` | `True` `False` | 是否为长视频（含章节结构） |
+| `target_duration_s` | `60` | 任意整数 | 目标时长（秒），`long_video=True` 时生效 |
+| `n_shots` | 自动计算 | 任意整数 | 手动指定镜头数 |
+| `tts_voice` | `"nova"` | 见下方 | OpenAI TTS 声音 |
+| `concurrent` | `False` | `True` `False` | 并发生成片段（快约5倍，10个镜头以上推荐开启） |
 
-### Assets Dictionary
+### 素材字典 `assets`
 
-All values accept local file paths or HTTPS URLs. Local files are auto-uploaded to fal.ai CDN.
+本地路径或 HTTPS URL 均可，本地文件自动上传到 fal.ai CDN。
 
 ```python
 assets = {
-    "character":    "blogger.jpg",              # keeps person consistent across all shots
-    "product":      "product.jpg",              # product reveal / animation shots
-    "ref_videos":   ["screen.mp4", "broll.mp4"], # camera movement references (max 3)
-    "extra_images": ["mood.jpg", "logo.png"],    # mood boards / backgrounds (max 7)
+    "character":    "blogger.jpg",               # 保持人物一致（每个镜头注入）
+    "product":      "product.jpg",               # 产品展示 / 动画镜头
+    "ref_videos":   ["screen.mp4", "broll.mp4"], # 参考视频，仿拍运镜（最多3个）
+    "extra_images": ["mood.jpg", "logo.png"],    # 背景 / 道具 / 风格参考（最多7个）
 }
 ```
 
-### TTS Voice Guide
+### TTS 声音选择
 
-| Voice | Character | Best for |
-|-------|-----------|---------|
-| `nova` | Warm female | Beauty, lifestyle, food |
-| `shimmer` | Soft female | Skincare, wellness, fashion |
-| `onyx` | Deep male | Tech, finance, YouTube tutorials |
-| `alloy` | Neutral, clear | General / product demo |
-| `echo` | Energetic male | Fitness, gaming |
-| `fable` | Expressive | Travel, education, storytelling |
+| 声音 | 风格 | 适合场景 |
+|------|------|---------|
+| `nova` | 温柔女声 | 美妆、生活方式、美食 |
+| `shimmer` | 柔和女声 | 护肤、时尚、wellness |
+| `onyx` | 低沉男声 | 科技、财经、B站教程 |
+| `alloy` | 中性清晰 | 通用 / 产品Demo |
+| `echo` | 活力男声 | 健身、游戏 |
+| `fable` | 富有表现力 | 旅行、教育、故事 |
 
-All voices support both English and Chinese.
-
----
-
-## Output Files
-
-| File | Contents |
-|------|----------|
-| `output_final.mp4` | Final video — clips merged, voiceover mixed, subtitles burned |
-| `output_final_copy.txt` | Title + post caption + per-shot voiceover + trend brief |
-| `output_final_chapters.txt` | YouTube/Bilibili timestamp markers (long video only) |
-| `subs.srt` | Subtitle file |
+所有声音均原生支持中文和英文。
 
 ---
 
-## Pipeline Architecture
+## 输出文件
 
-Five AI models work in sequence:
+| 文件 | 内容 |
+|------|------|
+| `output_final.mp4` | 最终视频（含旁白配音 + 字幕） |
+| `output_final_copy.txt` | 标题 + 发帖文案 + 逐镜头旁白 + 趋势数据 |
+| `output_final_chapters.txt` | 章节时间戳（仅长视频，适用于B站/YouTube） |
+| `subs.srt` | 字幕文件（可复用） |
+
+---
+
+## 流水线架构
+
+5层 AI 模型依次工作：
 
 ```
-User Input (topic, optional assets)
+输入：主题 + 可选素材（产品图/博主照片/录屏素材）
         │
         ▼
-[Layer 0] Grok 3 + Live Search
-          Scrapes target platform trends in real time
-          → trending_hooks, hashtag_clusters, content_matrix
+[第 0 层] Grok 3 实时搜索
+          实时抓取目标平台趋势数据
+          输出：热门钩子 / 话题标签 / 内容矩阵 / CTA话术
         │
         ▼
-[Layer 1] Gemini 2.5 Pro
-          Generates structured shot list (JSON)
-          → scene descriptions, camera moves, durations, voiceover placeholders
+[第 1 层] Gemini 2.5 Pro
+          生成结构化分镜脚本（JSON）
+          每个镜头：场景描述 / 运镜方式 / 时长 / 旁白占位
         │
         ▼
-[Layer 2] Seedance 2.0 (via fal.ai)
-          Generates video clips (concurrent optional)
-          Modes: text_to_video | omni_reference | first_last_frames
+[第 2 层] Seedance 2.0（via fal.ai）
+          生成视频片段（支持并发）
+          三种模式：纯AI生成 / 角色一致性 / 产品动画
         │
         ▼
-[Layer 3] Grok 3
-          Generates platform-optimized copy
-          → title, per-shot voiceover, post caption, hashtags
+[第 3 层] Grok 3 文案生成
+          输出：标题 / 逐镜头旁白 / 发帖文案 / 话题标签
         │
         ▼
-[Layer 4] OpenAI TTS + FFmpeg
-          TTS → .mp3 per shot
-          FFmpeg → merge audio into clips → concat → burn subtitles
+[第 4 层] OpenAI TTS + FFmpeg
+          TTS生成每个镜头配音 → 合并到片段 → 拼接 → 烧字幕
         │
         ▼
-      output.mp4 + copy package
+      output.mp4 + 文案包
 ```
 
 ---
 
-## System Requirements
-
-- Python 3.10+
-- FFmpeg installed (`ffmpeg` in PATH)
-- For Chinese subtitles: `Noto Sans CJK SC` font
-  ```bash
-  sudo apt install fonts-noto-cjk   # Ubuntu/Debian
-  brew install --cask font-noto-sans-cjk  # macOS
-  ```
-
----
-
-## Repo Structure
+## 项目结构
 
 ```
 Vedic-skills/
-├── README.md
+├── README.md               ← 本文件
+├── requirements.txt        ← Python 依赖
+├── example.py              ← 快速示例脚本
 └── skills/
-    ├── video-pipeline.skill           ← distributable .skill package (zip)
+    ├── video-pipeline.skill       ← 可分发的 .skill 包（zip）
     └── video-pipeline/
-        ├── SKILL.md                   ← system prompt for AI agents
+        ├── SKILL.md               ← AI agent 系统提示词
         └── scripts/
-            └── pipeline.py            ← full implementation
+            └── pipeline.py        ← 完整实现
 ```
+
+---
+
+## 系统要求
+
+- Python 3.10+
+- FFmpeg（系统级安装）
+- 中文字幕需要 Noto Sans CJK SC 字体
