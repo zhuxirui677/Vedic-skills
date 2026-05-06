@@ -1,297 +1,288 @@
 # Vedic Skills
 
-A collection of AI agent skills for automated content production. Each skill is a self-contained `.skill` package (zip archive) that includes a system prompt, implementation scripts, and sample assets.
+AI agent skill collection for automated video production.
+One command → publish-ready `.mp4` + full copy package (title, caption, voiceover, hashtags).
+
+Supports **6 platforms × 4 formats × 2 languages (EN/ZH)**.
 
 ---
 
 ## Skills
 
-| Skill | File | Description |
-|-------|------|-------------|
-| [video-pipeline](skills/video-pipeline/) | `video-pipeline.skill` | AI short & long video factory — TikTok, Instagram, YouTube |
-
----
-
-## How to Use a `.skill` File
-
-A `.skill` file is a renamed `.zip` archive. Unzip it to get the `SKILL.md` (system prompt) and `scripts/` folder.
-
-```bash
-# Unzip
-cp skills/video-pipeline.skill video-pipeline.zip
-unzip video-pipeline.zip
-
-# Install dependencies
-pip install google-generativeai fal-client openai requests ffmpeg-python
-
-# Set API keys
-export GEMINI_API_KEY="your_key"
-export FAL_KEY="your_key"
-export XAI_API_KEY="your_key"
-export OPENAI_API_KEY="your_key"
-
-# Run
-python video-pipeline/scripts/pipeline.py
-```
-
----
-
-# video-pipeline Skill
-
-> **Version:** 1.0 · **Target audience:** English-speaking (TikTok, Instagram, YouTube)
-
-## What It Does
-
-Give it a topic, an optional product photo, and optional screen recordings — it outputs a publish-ready `.mp4` video plus a full English copy package (title, post caption, voiceover, hashtags).
-
-**One command. Four outputs:**
-
-| Output file | Contents |
-|-------------|---------|
-| `output.mp4` | Final video — clips merged, subtitles burned, TTS audio merged |
-| `output_copy.txt` | Title + post caption + per-shot voiceover + trend brief |
-| `output_chapters.txt` | YouTube timestamp markers (long video only) |
-| `subs.srt` | Subtitle file (keep for re-use) |
-
----
-
-## Architecture
-
-Five AI models work in sequence, each with a specific job:
-
-```
-User Input
-(topic, product photo, screen recordings, mood boards)
-         │
-         ▼
-┌─────────────────────────────────────────────────────┐
-│  LAYER 0 — Grok 3 + Live Search                     │
-│  Scrapes TikTok & Instagram in real time             │
-│  Output: trend_brief                                 │
-│  · 5 trending hooks (exact phrases)                  │
-│  · Hashtag clusters (niche + broad)                  │
-│  · Top content formats / content matrix              │
-│  · Audio/music mood trending now                     │
-│  · High-performing CTA patterns                      │
-└────────────────────┬────────────────────────────────┘
-                     │ trend_brief
-                     ▼
-┌─────────────────────────────────────────────────────┐
-│  LAYER 1 — Gemini 2.5 Pro                           │
-│  Structural reasoning & shot planning                │
-│  · Reads trend_brief + asset inventory               │
-│  · Outputs JSON shot list:                           │
-│    - scene description (EN)                          │
-│    - camera movement                                 │
-│    - Seedance mode per shot                          │
-│    - ref_video_idx → which screen recording to copy  │
-│    - ref_image_idxs → which mood boards to reference │
-│  Short: 3–8 shots │ Long: auto from target_duration  │
-└────────────────────┬────────────────────────────────┘
-                     │ shot list
-                     ▼
-┌─────────────────────────────────────────────────────┐
-│  LAYER 2 — Seedance 2.0 (via fal.ai)                │
-│  Video clip generation (concurrent optional)        │
-│                                                     │
-│  3 generation modes:                                │
-│  · omni_reference  — character/product consistency  │
-│  · first_last_frames — product animation            │
-│  · text_to_video   — pure AI generation             │
-│                                                     │
-│  Supports: 9:16 vertical  │  16:9 horizontal        │
-│  Clip duration: 4–15s per clip                      │
-│  Assets injected via @image1/@video1 token syntax   │
-└────────────────────┬────────────────────────────────┘
-                     │ clip URLs
-                     ▼
-┌─────────────────────────────────────────────────────┐
-│  LAYER 3 — Grok 3 (copy generation)                 │
-│  English copywriting using trend_brief context      │
-│  · Video title (platform-optimized length & style)  │
-│  · Per-shot voiceover (one line per clip)           │
-│  · Post caption with hashtags                       │
-│  · Chapter titles (long video)                      │
-└────────────────────┬────────────────────────────────┘
-                     │ copy package
-                     ▼
-┌─────────────────────────────────────────────────────┐
-│  LAYER 4 — OpenAI TTS + FFmpeg                      │
-│  · TTS: English voiceover → .mp3 per shot           │
-│  · FFmpeg: merge TTS into clip (duck original audio)│
-│  · FFmpeg: concat all clips                         │
-│  · FFmpeg: burn subtitles (Arial, white + outline)  │
-│  · Long video: write YouTube chapter timestamps     │
-└────────────────────┬────────────────────────────────┘
-                     │
-                     ▼
-              output.mp4  +  copy package
-```
-
----
-
-## Four Format Modes
-
-| Mode | `aspect_ratio` | `long_video` | Use case | Clip length |
-|------|---------------|-------------|---------|------------|
-| Short vertical | `9:16` | `False` | TikTok / Instagram Reels | 4–10s |
-| Short horizontal | `16:9` | `False` | Landscape demo / promo | 4–10s |
-| Long vertical | `9:16` | `True` | Long-form TikTok vlog | 6–15s |
-| Long horizontal | `16:9` | `True` | YouTube tutorial / full demo | 6–15s |
+| Skill | Description |
+|-------|-------------|
+| [video-pipeline](skills/video-pipeline/) | Full AI video factory — TikTok, Instagram, YouTube, Douyin, XHS, Bilibili |
 
 ---
 
 ## Quick Start
 
-### 1. Install
-
 ```bash
+# 1. Clone
+git clone https://github.com/zhuxirui677/Vedic-skills.git
+cd Vedic-skills
+
+# 2. Install Python deps
 pip install google-generativeai fal-client openai requests ffmpeg-python
-brew install ffmpeg  # macOS
+
+# 3. Install FFmpeg (system)
+sudo apt install ffmpeg          # Ubuntu/Debian
+brew install ffmpeg              # macOS
+
+# 4. Set API keys (see table below)
+export GEMINI_API_KEY="..."
+export FAL_KEY="..."
+export XAI_API_KEY="..."
+export OPENAI_API_KEY="..."
+
+# 5. Run
+python skills/video-pipeline/scripts/pipeline.py
 ```
 
-### 2. Set API Keys
+---
 
-```bash
-export GEMINI_API_KEY="..."    # aistudio.google.com
-export FAL_KEY="..."           # fal.ai (Seedance 2.0)
-export XAI_API_KEY="..."       # console.x.ai (Grok 3)
-export OPENAI_API_KEY="..."    # platform.openai.com (TTS)
-```
+## API Keys — What You Need
 
-### 3. Run
+### By Platform
+
+| Platform | `platform=` | Language | GEMINI | FAL | XAI | OPENAI |
+|----------|------------|----------|:------:|:---:|:---:|:------:|
+| TikTok | `"tiktok"` | EN | ✅ | ✅ | ✅ | ✅ |
+| Instagram | `"instagram"` | EN | ✅ | ✅ | ✅ | ✅ |
+| YouTube | `"youtube"` | EN | ✅ | ✅ | ✅ | ✅ |
+| 抖音 Douyin | `"douyin"` | ZH | ✅ | ✅ | ✅ | ✅ |
+| 小红书 XHS | `"xiaohongshu"` | ZH | ✅ | ✅ | ✅ | ✅ |
+| 哔哩哔哩 Bilibili | `"bilibili"` | ZH | ✅ | ✅ | ✅ | ✅ |
+
+All platforms require all 4 keys. Each key serves a different layer of the pipeline.
+
+### By Video Format
+
+| Format | `aspect_ratio` | `long_video` | Extra condition |
+|--------|---------------|-------------|-----------------|
+| Short vertical (TikTok/Reels/Douyin) | `"9:16"` | `False` | — |
+| Short horizontal (landscape demo) | `"16:9"` | `False` | — |
+| Long vertical (long-form portrait) | `"9:16"` | `True` | set `target_duration_s` |
+| Long horizontal (YouTube tutorial) | `"16:9"` | `True` | set `target_duration_s` |
+
+Long video also generates `_chapters.txt` with YouTube timestamp markers.
+
+### Key Details
+
+| Key | Used For (Pipeline Layer) | Where to Get | Cost |
+|-----|--------------------------|--------------|------|
+| `GEMINI_API_KEY` | Layer 1 — shot list generation (Gemini 2.5 Pro) | [aistudio.google.com](https://aistudio.google.com) → Get API Key | **Free** (1500 req/day) |
+| `FAL_KEY` | Layer 2 — video clip generation (Seedance 2.0) | [fal.ai](https://fal.ai) → Dashboard → API Keys | ~$0.30–0.50 per clip |
+| `XAI_API_KEY` | Layer 0 — live trend search + Layer 3 — copy (Grok 3) | [console.x.ai](https://console.x.ai) | $25 free credit on signup |
+| `OPENAI_API_KEY` | Layer 4 — TTS voiceover | [platform.openai.com](https://platform.openai.com) → API Keys | ~$0.01 per video |
+
+### Cost per Run (5-shot short video)
+
+| Item | Cost |
+|------|------|
+| Gemini (shot list) | Free |
+| Grok 3 (trends + copy) | ~$0.05 |
+| Seedance 2.0 × 5 clips | ~$1.50–2.50 |
+| OpenAI TTS | ~$0.01 |
+| **Total** | **~$2** |
+
+For long video (15+ shots), multiply Seedance cost by number of shots.
+
+---
+
+## Usage
+
+### Python API
 
 ```python
-from scripts.pipeline import run_pipeline
+import sys
+sys.path.insert(0, "skills/video-pipeline/scripts")
+from pipeline import run_pipeline
+```
 
-# Short TikTok (default)
-run_pipeline(
-    topic="SPF 50 sunscreen outdoor test",
-    platform="tiktok",
-)
+#### English — TikTok short vertical (9:16)
 
-# With your own assets (local files or URLs)
+```python
 run_pipeline(
-    topic="New lip gloss launch",
+    topic="SPF 50 sunscreen outdoor test, real skin reaction",
+    output_path="sunscreen_tiktok.mp4",
     assets={
-        "character":    "my_photo.jpg",           # blogger photo
-        "product":      "lipgloss.jpg",            # product image
-        "ref_videos":   ["screen_rec.mp4"],        # your screen recording
-        "extra_images": ["mood_board.jpg"],        # aesthetic reference
+        "character": "blogger.jpg",        # keeps person consistent
+        "product":   "sunscreen.jpg",      # product shots
+        "ref_videos": ["outdoor_walk.mp4"], # camera movement reference
     },
-    platform="instagram",
-    tts_voice="shimmer",
+    platform="tiktok",
+    language="en",
+    aspect_ratio="9:16",
+    n_shots=5,
+    tts_voice="nova",
+    concurrent=True,
 )
+```
 
-# Long YouTube tutorial (~5 min)
+#### English — YouTube long horizontal (16:9)
+
+```python
 run_pipeline(
-    topic="Home studio lighting setup guide",
+    topic="How to set up a home studio for content creators — full guide",
+    output_path="studio_youtube.mp4",
+    assets={
+        "character":  "creator.jpg",
+        "ref_videos": ["studio_recording.mov", "gear_broll.mp4"],
+        "extra_images": ["gear_list.jpg"],
+    },
+    platform="youtube",
+    language="en",
+    aspect_ratio="16:9",
+    long_video=True,
+    target_duration_s=300,   # ~5 minutes
+    tts_voice="onyx",
+    concurrent=True,
+)
+```
+
+#### Chinese — Douyin short vertical (抖音 9:16)
+
+```python
+run_pipeline(
+    topic="防晒霜户外实测，真实肤感反应",
+    output_path="sunscreen_douyin.mp4",
+    assets={
+        "character": "blogger.jpg",
+        "product":   "sunscreen.jpg",
+    },
+    platform="douyin",
+    language="zh",
+    aspect_ratio="9:16",
+    n_shots=5,
+    tts_voice="nova",
+    concurrent=True,
+)
+```
+
+#### Chinese — Bilibili long horizontal (B站 16:9)
+
+```python
+run_pipeline(
+    topic="家庭影音室从零搭建完整攻略",
+    output_path="home_studio_bilibili.mp4",
+    assets={
+        "ref_videos": ["room_tour.mp4", "gear_demo.mp4"],
+    },
+    platform="bilibili",
+    language="zh",
     aspect_ratio="16:9",
     long_video=True,
     target_duration_s=300,
-    platform="youtube",
     tts_voice="onyx",
+    concurrent=True,
 )
 ```
 
 ---
 
-## Parameters
+## All Parameters
 
 | Parameter | Default | Options | Description |
 |-----------|---------|---------|-------------|
 | `topic` | required | any string | Video subject or product description |
-| `output_path` | `output_final.mp4` | any `.mp4` path | Output file path |
+| `output_path` | `"output_final.mp4"` | any `.mp4` path | Output file path |
 | `assets` | `{}` | see below | Media assets dict |
+| `platform` | `"tiktok"` | `tiktok` `instagram` `youtube` `douyin` `xiaohongshu` `bilibili` `general` | Target platform |
+| `language` | `"en"` | `"en"` `"zh"` | Output language — auto-set to `zh` for Chinese platforms |
 | `aspect_ratio` | `"9:16"` | `"9:16"` `"16:9"` | Video orientation |
-| `long_video` | `False` | `True` `False` | Enable long-form chapter structure |
-| `target_duration_s` | `60` | any int | Target length in seconds (long video) |
+| `long_video` | `False` | `True` `False` | Enable long-form with chapter structure |
+| `target_duration_s` | `60` | any int | Target length in seconds (used when `long_video=True`) |
 | `n_shots` | auto | any int | Override shot count |
-| `platform` | `"tiktok"` | `tiktok` `instagram` `youtube` `general` | Copy style |
-| `tts_voice` | `"nova"` | see TTS table | OpenAI TTS voice |
-| `concurrent` | `False` | `True` `False` | Parallel clip generation (5× faster) |
+| `tts_voice` | `"nova"` | see below | OpenAI TTS voice |
+| `concurrent` | `False` | `True` `False` | Parallel clip generation (~5× faster, recommended for 8+ shots) |
 
----
+### Assets Dictionary
 
-## Assets Dictionary
-
-All values accept **local file paths or HTTPS URLs**. Local files are auto-uploaded to fal.ai CDN before generation.
+All values accept local file paths or HTTPS URLs. Local files are auto-uploaded to fal.ai CDN.
 
 ```python
 assets = {
-    "character":    "path/to/blogger.jpg",        # keeps person consistent across all shots
-    "product":      "path/to/product.jpg",         # product reveal / animation shots
-    "ref_videos":  ["screen.mp4", "broll.mp4"],   # screen recordings or b-roll (max 3)
-    "extra_images": ["mood.jpg", "logo.png"],      # backgrounds / props / mood boards (max 7)
+    "character":    "blogger.jpg",              # keeps person consistent across all shots
+    "product":      "product.jpg",              # product reveal / animation shots
+    "ref_videos":   ["screen.mp4", "broll.mp4"], # camera movement references (max 3)
+    "extra_images": ["mood.jpg", "logo.png"],    # mood boards / backgrounds (max 7)
 }
 ```
 
-| Key | Seedance token | Limit | Effect |
-|-----|---------------|-------|--------|
-| `character` | `@image1` | 1 | Character injected into every shot that needs it |
-| `product` | `@image2` | 1 | Product image for reveals and close-ups |
-| `ref_videos` | `@video1–3` | ≤ 3 | Gemini assigns each recording to a shot to copy its camera movement |
-| `extra_images` | `@image3+` | ≤ 7 | Mood boards assigned by Gemini per shot |
-
----
-
-## Seedance 2.0 Generation Modes
-
-| Scenario | Mode | What happens |
-|----------|------|-------------|
-| No assets | `text_to_video` | Pure AI generation from prompt |
-| Character / product photo | `omni_reference` | Photo injected as `@image1`/`@image2`, Seedance maintains consistency |
-| Product animation (box → hand) | `first_last_frames` | Product photo used as first frame, AI generates to last frame |
-| Copy camera movement | `omni_reference` + video | Screen recording injected as `@video1`, Seedance replicates movement |
-| Full mix | `omni_reference` | Up to 9 images + 3 videos in one call |
-
-Gemini automatically assigns the correct mode per shot based on available assets.
-
----
-
-## Platform Presets
-
-| Platform | Title style | Caption style | Voiceover style |
-|----------|------------|--------------|----------------|
-| `tiktok` | ≤ 60 chars, hook first, 1–2 emoji | 3–5 punchy lines, 3–5 hashtags, CTA | Fast-paced, Gen Z, max 10 words/sentence |
-| `instagram` | ≤ 55 chars, keyword-rich | Storytelling paragraph, 5–8 hashtags | Warm, aspirational, complete sentences |
-| `youtube` | ≤ 70 chars, SEO keyword | 2–3 paragraphs + chapter timestamps | Clear, authoritative |
-| `general` | ≤ 80 chars | 2–3 natural sentences | Conversational |
-
----
-
-## TTS Voice Guide
+### TTS Voice Guide
 
 | Voice | Character | Best for |
 |-------|-----------|---------|
 | `nova` | Warm female | Beauty, lifestyle, food |
-| `shimmer` | Soft female | Wellness, skincare, fashion |
+| `shimmer` | Soft female | Skincare, wellness, fashion |
 | `onyx` | Deep male | Tech, finance, YouTube tutorials |
-| `alloy` | Neutral, clear | General purpose |
+| `alloy` | Neutral, clear | General / product demo |
 | `echo` | Energetic male | Fitness, gaming |
 | `fable` | Expressive | Travel, education, storytelling |
 
----
-
-## How Grok Live Search Works
-
-Layer 0 calls Grok 3 with `search_parameters.mode = "on"`, pulling from:
-- **Web** — Google-indexed TikTok/IG content, creator blogs, trend reports
-- **X (Twitter)** — real-time creator discussion, viral sound mentions
-
-The returned `trend_brief` feeds both Gemini (shot planning) and Grok copy generation, so every hook, hashtag, and CTA reflects what is actually working this week — not training data from months ago.
+All voices support both English and Chinese.
 
 ---
 
-## Stack & API Keys
+## Output Files
 
-| Service | Purpose | Where to get key |
-|---------|---------|-----------------|
-| **Seedance 2.0** (fal.ai) | Video clip generation | [fal.ai](https://fal.ai) → Dashboard → API Keys |
-| **Gemini 2.5 Pro** | Shot list & structural planning | [aistudio.google.com](https://aistudio.google.com) |
-| **Grok 3** (xAI) | Live trend search + English copywriting | [console.x.ai](https://console.x.ai) |
-| **OpenAI TTS** | English voiceover audio | [platform.openai.com](https://platform.openai.com) |
-| **FFmpeg** | Clip merging, subtitle burn, audio mix | `brew install ffmpeg` / `apt install ffmpeg` |
+| File | Contents |
+|------|----------|
+| `output_final.mp4` | Final video — clips merged, voiceover mixed, subtitles burned |
+| `output_final_copy.txt` | Title + post caption + per-shot voiceover + trend brief |
+| `output_final_chapters.txt` | YouTube/Bilibili timestamp markers (long video only) |
+| `subs.srt` | Subtitle file |
+
+---
+
+## Pipeline Architecture
+
+Five AI models work in sequence:
+
+```
+User Input (topic, optional assets)
+        │
+        ▼
+[Layer 0] Grok 3 + Live Search
+          Scrapes target platform trends in real time
+          → trending_hooks, hashtag_clusters, content_matrix
+        │
+        ▼
+[Layer 1] Gemini 2.5 Pro
+          Generates structured shot list (JSON)
+          → scene descriptions, camera moves, durations, voiceover placeholders
+        │
+        ▼
+[Layer 2] Seedance 2.0 (via fal.ai)
+          Generates video clips (concurrent optional)
+          Modes: text_to_video | omni_reference | first_last_frames
+        │
+        ▼
+[Layer 3] Grok 3
+          Generates platform-optimized copy
+          → title, per-shot voiceover, post caption, hashtags
+        │
+        ▼
+[Layer 4] OpenAI TTS + FFmpeg
+          TTS → .mp3 per shot
+          FFmpeg → merge audio into clips → concat → burn subtitles
+        │
+        ▼
+      output.mp4 + copy package
+```
+
+---
+
+## System Requirements
+
+- Python 3.10+
+- FFmpeg installed (`ffmpeg` in PATH)
+- For Chinese subtitles: `Noto Sans CJK SC` font
+  ```bash
+  sudo apt install fonts-noto-cjk   # Ubuntu/Debian
+  brew install --cask font-noto-sans-cjk  # macOS
+  ```
 
 ---
 
@@ -299,24 +290,11 @@ The returned `trend_brief` feeds both Gemini (shot planning) and Grok copy gener
 
 ```
 Vedic-skills/
-├── README.md                          ← this file
+├── README.md
 └── skills/
     ├── video-pipeline.skill           ← distributable .skill package (zip)
     └── video-pipeline/
-        ├── SKILL.md                   ← system prompt loaded by AI agents
-        ├── scripts/
-        │   └── pipeline.py            ← full Python implementation (784 lines)
-        └── assets/
-            ├── sample_screen_recording_short.mov  ← test footage
-            └── sample_screen_recording_long.mov   ← test footage
+        ├── SKILL.md                   ← system prompt for AI agents
+        └── scripts/
+            └── pipeline.py            ← full implementation
 ```
-
----
-
-## Notes
-
-- All generated copy (titles, voiceover, captions, hashtags) is **English only**
-- `scene_zh` in shot JSON is Chinese internal reference only — never shown to end users
-- Grok JSON output includes fallback index-slicing if commentary wraps the JSON
-- Concurrent mode (`concurrent=True`) runs all Seedance API calls in parallel via `asyncio` — recommended for long video (10+ shots)
-- TTS audio is merged **per clip** before final concat, so subtitle timing is frame-accurate
