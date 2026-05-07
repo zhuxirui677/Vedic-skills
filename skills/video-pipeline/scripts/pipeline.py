@@ -22,13 +22,13 @@ import requests
 
 # ── Config ────────────────────────────────────────────────────────────────────
 genai.configure(api_key=os.environ["GEMINI_API_KEY"])
-GEMINI_MODEL = "gemini-2.5-pro-preview-06-05"
+GEMINI_MODEL = "gemini-3"
 
 grok = OpenAI(
     api_key=os.environ["XAI_API_KEY"],
     base_url="https://api.x.ai/v1",
 )
-GROK_MODEL = "grok-3"
+GROK_MODEL = "grok-4.3"
 
 openai_client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
 
